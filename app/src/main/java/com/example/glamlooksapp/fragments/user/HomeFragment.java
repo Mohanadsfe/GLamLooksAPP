@@ -3,6 +3,8 @@ package com.example.glamlooksapp.fragments.user;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,12 +13,27 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.example.glamlooksapp.R;
+import com.example.glamlooksapp.utils.Database;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firestore.v1.StructuredQuery;
 
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HomeFragment extends Fragment {
 
     ImageView hair_cut, hair_color, nails, laser, shaving;
+    private Database database;
+    private FirebaseUser firebaseUser;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -27,6 +44,8 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_home_m, container, false);
+        database = new Database();
+        firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         findViews(view);
         initVars();
         return view;
@@ -82,10 +101,13 @@ public class HomeFragment extends Fragment {
             }
         });
     }
-
     private void showDateTimePicker(final String serviceName) {
         // Get the current date and time
         final Calendar currentDate = Calendar.getInstance();
+
+        // Calculate the maximum date (7 days from now)
+        Calendar maxDate = Calendar.getInstance();
+        maxDate.add(Calendar.DAY_OF_MONTH, 7);
 
         // Date picker dialog
         DatePickerDialog datePickerDialog = new DatePickerDialog(
@@ -97,40 +119,90 @@ public class HomeFragment extends Fragment {
                         currentDate.set(Calendar.MONTH, monthOfYear);
                         currentDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
 
-                        // Time picker dialog
-                        TimePickerDialog timePickerDialog = new TimePickerDialog(
-                                requireContext(),
-                                new TimePickerDialog.OnTimeSetListener() {
-                                    @Override
-                                    public void onTimeSet(android.widget.TimePicker view, int hourOfDay, int minute) {
-                                        currentDate.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                                        currentDate.set(Calendar.MINUTE, minute);
+                        // Check if the selected day is Friday or Saturday
+                        int dayOfWeek = currentDate.get(Calendar.DAY_OF_WEEK);
+                        if (dayOfWeek == Calendar.FRIDAY || dayOfWeek == Calendar.SATURDAY) {
+                            showToast("Please select a day other than Friday or Saturday.");
+                        } else {
+                            // Time picker dialog
+                            TimePickerDialog timePickerDialog = new TimePickerDialog(
+                                    requireContext(),
+                                    R.style.CustomTimePicker,
+                                    new TimePickerDialog.OnTimeSetListener() {
+                                        @Override
+                                        public void onTimeSet(android.widget.TimePicker view, int hourOfDay, int minute) {
+                                            if (hourOfDay < 11 || (hourOfDay == 18 && minute > 0)) {
+                                                showToast("Please select a time between 11:00 and 18:00.");
+                                            } else {
+                                                currentDate.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                                                currentDate.set(Calendar.MINUTE, minute);
 
-                                        // Show the selected date and time
-                                        showToast("Service: " + serviceName + "\nDate: " +
-                                                currentDate.get(Calendar.DAY_OF_MONTH) + "/" +
-                                                (currentDate.get(Calendar.MONTH) + 1) + "/" +
-                                                currentDate.get(Calendar.YEAR) + "\nTime: " +
-                                                currentDate.get(Calendar.HOUR_OF_DAY) + ":" +
-                                                currentDate.get(Calendar.MINUTE));
-                                    }
-                                },
-                                currentDate.get(Calendar.HOUR_OF_DAY),
-                                currentDate.get(Calendar.MINUTE),
-                                false
-                        );
-                        timePickerDialog.show();
+                                                // Show the selected date and time
+                                                showToast("Service: " + serviceName + "\nDate: " +
+                                                        currentDate.get(Calendar.DAY_OF_MONTH) + "/" +
+                                                        (currentDate.get(Calendar.MONTH) + 1) + "/" +
+                                                        currentDate.get(Calendar.YEAR) + "\nTime: " +
+                                                        currentDate.get(Calendar.HOUR_OF_DAY) + ":" +
+                                                        currentDate.get(Calendar.MINUTE));
+
+                                                // add queue for datebase
+                                                addQueueToDB(serviceName,currentDate.getTimeInMillis());
+
+                                            }
+                                        }
+                                    },
+                                    currentDate.get(Calendar.HOUR_OF_DAY),
+                                    currentDate.get(Calendar.MINUTE),
+                                    false
+                            );
+
+                            timePickerDialog.updateTime(11,0);
+                            timePickerDialog.updateTime(17,30);
+
+                            // Show the time picker dialog
+                            timePickerDialog.show();
+                        }
                     }
                 },
                 currentDate.get(Calendar.YEAR),
                 currentDate.get(Calendar.MONTH),
                 currentDate.get(Calendar.DAY_OF_MONTH)
+
         );
+
+        // Set the minimum and maximum dates for the date picker
         datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
+        datePickerDialog.getDatePicker().setMaxDate(maxDate.getTimeInMillis());
         datePickerDialog.show();
     }
 
+
     private void showToast(String message) {
         Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+    }
+    private void addQueueToDB( String serviceName ,long timestamp){
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Timestamp timestampDB = new Timestamp(timestamp /1000 ,0);
+
+        Map<String ,Object> queueData = new HashMap<>();
+        queueData.put("uid",firebaseUser.getUid());
+        queueData.put("serviceName" , serviceName);
+        queueData.put("timestamp",timestampDB);
+
+        CollectionReference queuesCollection = db.collection("FuctureQueues");
+
+        queuesCollection.add(queueData).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+            @Override
+            public void onSuccess(DocumentReference documentReference) {
+                showToast("Added to firestore: "+ documentReference.getId());
+
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                showToast("Error adding to Friebase" + e.getMessage());
+            }
+        });
+
     }
 }
