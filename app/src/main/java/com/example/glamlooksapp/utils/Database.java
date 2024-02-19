@@ -580,9 +580,9 @@ public class Database {
     }
 
     public String downloadImageUrl(String imagePath){
-      Task<Uri> task =  mStorage.getReference(imagePath).getDownloadUrl();
-      while(!task.isComplete());
-      return task.getResult().toString();
+        Task<Uri> task =  mStorage.getReference(imagePath).getDownloadUrl();
+        while(!task.isComplete());
+        return task.getResult().toString();
     }
 
     public boolean uploadImage(Uri selectedImageUri, String path) {
@@ -620,60 +620,6 @@ public class Database {
                     }
                 });
     }
-    public void deleteUserTime(String datetimeUid, UserCallBack callBack) {
-        db.collection(TIMES_TABLE)
-                .document(datetimeUid)
-                .delete()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        Log.d("FirestoreData", "DocumentSnapshot successfully deleted!");
-                        // Call the callback method to notify completion
-                        callBack.onDeleteComplete(task);
-                    } else {
-                        Log.w("FirestoreData", "Error deleting document", task.getException());
-                    }
-                });
-    }
-
-    public void fetchDatesByManagerId(String managerId, DatetimeCallback callback) {
-        // Check if managerId is not null
-        if (managerId == null) {
-            // Handle the case when managerId is null
-            return;
-        }
-
-        // Get a reference to the Firestore collection
-        CollectionReference datesCollection = db.collection(TIMES_TABLE);
-
-        // Query the collection for dates with matching managerId
-        datesCollection.whereEqualTo("managerId", managerId)
-                .addSnapshotListener((value, error) -> {
-                    if (error != null) {
-                        // Handle Firestore error
-                        Log.e("FirestoreData", "Error fetching dates by managerId: ", error);
-                        return;
-                    }
-
-                    // Create a list to store retrieved dates
-                    ArrayList<Datetime> datesList = new ArrayList<>();
-
-                    // Check if the query result is not empty
-                    if (value != null && !value.isEmpty()) {
-                        // Loop through each document in the query result
-                        for (QueryDocumentSnapshot document : value) {
-                            // Convert Firestore document to Datetime object
-                            Datetime datetime = document.toObject(Datetime.class);
-                            // Add the datetime object to the list
-                            datesList.add(datetime);
-                        }
-                    }
-
-                    // Call the callback method with the retrieved dates
-                    callback.onDatetimeFetchComplete(datesList);
-                });
-    }
-
-
 
     public void fetchDatesByManagerId(String managerId, DatetimeCallback callback) {
         // Check if managerId is not null
