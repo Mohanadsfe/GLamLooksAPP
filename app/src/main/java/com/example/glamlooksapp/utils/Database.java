@@ -580,9 +580,9 @@ public class Database {
     }
 
     public String downloadImageUrl(String imagePath){
-        Task<Uri> task =  mStorage.getReference(imagePath).getDownloadUrl();
-        while(!task.isComplete());
-        return task.getResult().toString();
+      Task<Uri> task =  mStorage.getReference(imagePath).getDownloadUrl();
+      while(!task.isComplete());
+      return task.getResult().toString();
     }
 
     public boolean uploadImage(Uri selectedImageUri, String path) {
@@ -658,6 +658,9 @@ public class Database {
                     callback.onDatetimeFetchComplete(datesList);
                 });
     }
+
+
+
 
 
 
