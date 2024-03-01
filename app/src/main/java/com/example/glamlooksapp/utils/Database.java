@@ -646,6 +646,23 @@ public class Database {
     }
 
 
+    public void getProductsByName(String productName, ProductCallBack callback) {
+        db.collection("products").whereEqualTo("name", productName).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                ArrayList<Product> productList = new ArrayList<>();
+                for (QueryDocumentSnapshot document : task.getResult()) {
+                    Product product = document.toObject(Product.class);
+                    if(product.getImagePath() != null) {
+                        product.setImageUrl(downloadImageUrl(product.getImagePath()));
+                    }
+                    productList.add(product);
+                }
+                callback.onFetchProductsComplete(productList);
+            } else {
+                Log.d("Database", "Error getting documents: ", task.getException());
+            }
+        });
+    }
 
 
 }
