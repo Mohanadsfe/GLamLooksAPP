@@ -13,6 +13,8 @@ import com.example.glamlooksapp.callback.ManagerAddedCallback;
 import com.example.glamlooksapp.callback.ProductCallBack;
 import com.example.glamlooksapp.callback.UserCallBack;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -52,7 +54,8 @@ public class Database {
     private ArrayList<Datetime> appointmentsList;
     private ArrayList<Manager> managersList;
 
-
+    private static ArrayList<Product> productList2 = new ArrayList<>();
+    private static boolean isProductsFetched = false;
     public Database(){
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -97,44 +100,44 @@ public class Database {
                 });
     }
 
-public void fetchUserDatesByService(String serviceName) {
-    db.collection(TIMES_TABLE)
-            .whereEqualTo("serviceName", serviceName)
-            .orderBy("formattedDate")
-            .orderBy("formattedTime")
-            .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                @Override
-                public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                    if (error != null) {
-                        Log.e(TAG, "Error fetching documents: ", error);
-                        return;
+    public void fetchUserDatesByService(String serviceName) {
+        db.collection(TIMES_TABLE)
+                .whereEqualTo("serviceName", serviceName)
+                .orderBy("formattedDate")
+                .orderBy("formattedTime")
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
+                        if (error != null) {
+                            Log.e(TAG, "Error fetching documents: ", error);
+                            return;
+                        }
+
+                        if (value == null || value.isEmpty()) {
+                            Log.d(TAG, "No data found");
+                            return;
+                        }
+
+                        Log.d("fetchUserDatesByService", "serviceName: " + serviceName);
+                        Log.d("fetchUserDatesByService", "ValueKeys2: " + value.size());
+
+                        datesKeysList = new ArrayList<>();
+                        appointmentsList = new ArrayList<>(); // Initialize the list
+
+                        int i = 0;
+                        for (QueryDocumentSnapshot document : value) {
+                            i++;
+                            Datetime datetime = document.toObject(Datetime.class);
+                            appointmentsList.add(datetime);
+                            String uid = datetime.getKey();
+                            Log.d("fetchUserDatesByService", "ValueKeys: " + i + uid);
+                            datesKeysList.add(uid);
+                        }
+
+                        fetchUsersByKeys(datesKeysList, appointmentsList);
                     }
-
-                    if (value == null || value.isEmpty()) {
-                        Log.d(TAG, "No data found");
-                        return;
-                    }
-
-                    Log.d("fetchUserDatesByService", "serviceName: " + serviceName);
-                    Log.d("fetchUserDatesByService", "ValueKeys2: " + value.size());
-
-                    datesKeysList = new ArrayList<>();
-                    appointmentsList = new ArrayList<>(); // Initialize the list
-
-                    int i = 0;
-                    for (QueryDocumentSnapshot document : value) {
-                        i++;
-                        Datetime datetime = document.toObject(Datetime.class);
-                        appointmentsList.add(datetime);
-                        String uid = datetime.getKey();
-                        Log.d("fetchUserDatesByService", "ValueKeys: " + i + uid);
-                        datesKeysList.add(uid);
-                    }
-
-                    fetchUsersByKeys(datesKeysList, appointmentsList);
-                }
-            });
-}
+                });
+    }
 
     public void fetchUsersByKeys(ArrayList<String> userKeys, ArrayList<Datetime> list_dates) {
         if (userKeys == null || userKeys.isEmpty()) {
@@ -172,32 +175,32 @@ public void fetchUserDatesByService(String serviceName) {
                 });
     }
 
-public void fetchUserDatesByKey(String uid) {
-    db.collection(TIMES_TABLE)
-            .whereEqualTo("key", uid)
-            .orderBy("formattedDate")
-            .orderBy("formattedTime")
-            .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                @Override
-                public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                    if (error != null) {
-                        Log.e(TAG, "Error fetching documents: ", error);
-                        return;
-                    }
-
-                    userDatesList = new ArrayList<>();
-                    if (value != null) {
-                        Log.e(TAG, "ValueKeys: " + value.size());
-                        for (QueryDocumentSnapshot document : value) {
-                            Datetime datetime = document.toObject(Datetime.class);
-                            userDatesList.add(datetime);
+    public void fetchUserDatesByKey(String uid) {
+        db.collection(TIMES_TABLE)
+                .whereEqualTo("key", uid)
+                .orderBy("formattedDate")
+                .orderBy("formattedTime")
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
+                        if (error != null) {
+                            Log.e(TAG, "Error fetching documents: ", error);
+                            return;
                         }
+
+                        userDatesList = new ArrayList<>();
+                        if (value != null) {
+                            Log.e(TAG, "ValueKeys: " + value.size());
+                            for (QueryDocumentSnapshot document : value) {
+                                Datetime datetime = document.toObject(Datetime.class);
+                                userDatesList.add(datetime);
+                            }
+                        }
+                        customerCallBack.onCompleteFetchUserDates(userDatesList);
+                        Log.d("fetchUserDatesByKey", "success");
                     }
-                    customerCallBack.onCompleteFetchUserDates(userDatesList);
-                    Log.d("fetchUserDatesByKey", "success");
-                }
-            });
-}
+                });
+    }
 
 
 
@@ -625,8 +628,41 @@ public void fetchUserDatesByKey(String uid) {
     }
 
 
+    public void removeUser(String key) {
+        // Delete user from Firebase Authentication
+        Objects.requireNonNull(mAuth.getCurrentUser()).delete();
+
+        // Delete user document from Firestore
+        db.collection(USERS_TABLE)
+                .document(key)
+                .delete()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d("User deleted successfully", "success");
+                    } else {
+                        Log.w("not success to delete user", "Error deleting document", task.getException());
+                    }
+                });
+    }
 
 
+    public void getProductsByName(String productName, ProductCallBack callback) {
+        db.collection("products").whereEqualTo("name", productName).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                ArrayList<Product> productList = new ArrayList<>();
+                for (QueryDocumentSnapshot document : task.getResult()) {
+                    Product product = document.toObject(Product.class);
+                    if(product.getImagePath() != null) {
+                        product.setImageUrl(downloadImageUrl(product.getImagePath()));
+                    }
+                    productList.add(product);
+                }
+                callback.onFetchProductsComplete(productList);
+            } else {
+                Log.d("Database", "Error getting documents: ", task.getException());
+            }
+        });
+    }
 
 
 }
