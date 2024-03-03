@@ -81,7 +81,6 @@ public class ManagerActivity extends AppCompatActivity {
                 return true;
             }
 
-
         if(item.getItemId()==  R.id.settings) {
             Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show();
             return true;

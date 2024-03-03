@@ -70,6 +70,7 @@ public class CustomerActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.nav_menu, menu);
         return true;
     }
+    
     @SuppressLint("NonConstantResourceId")
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
