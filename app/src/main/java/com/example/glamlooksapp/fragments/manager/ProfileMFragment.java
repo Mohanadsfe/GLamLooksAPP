@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -74,6 +75,7 @@ public class ProfileMFragment extends Fragment {
         profileImage = view.findViewById(R.id.fProfile_IV_profileImage);
         profileName = view.findViewById(R.id.fProfile_TV_name);
         editDetailsBtn = view.findViewById(R.id.fProfile_CV_editDetails);
+//        logoutButton = view.findViewById(R.id.logoutButton);
         database.fetchManagerData(database.getCurrentUser().getUid());
     }
 
@@ -113,5 +115,7 @@ public class ProfileMFragment extends Fragment {
                 }
             }
         });
+
+
     }
 }
