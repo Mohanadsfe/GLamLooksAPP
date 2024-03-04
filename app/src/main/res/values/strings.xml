@@ -71,6 +71,8 @@
     <string name="manager_name">Manager Name:</string>
     <string name="durationn">Duration:</string>
     <string name="glamlooks">GlamLooks</string>
+    <string name="remove_account">Remove Account</string>
+    <string name="remove_account1">Remove Account</string>
     <string name="title_activity_splash">SplashActivity</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
@@ -114,5 +116,4 @@
         libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
-    <string name="logout_remove" />
 </resources>

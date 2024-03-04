@@ -61,7 +61,7 @@ public class AppointmentsListMFragment extends Fragment {
         recyclerViewCustomers = view.findViewById(R.id.recyclerViewCustomers);
         database = new Database();
         appointmentsList = new ArrayList<>();
-//        initViews();
+        //initViews();
         intiVars();
         initRecyclerView();
         Button exportToExcelButton = view.findViewById(R.id.exportToExcelButton);
