@@ -7,3 +7,4 @@ public interface AuthCallBack {
     void onLoginComplete(Task<AuthResult> task);
     void onCreateAccountComplete(boolean status , String err);
 }
+//okay
